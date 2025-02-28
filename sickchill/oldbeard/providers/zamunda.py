@@ -52,7 +52,7 @@ class Provider(TorrentProvider):
 
         change_language_response = self.get_url(self.urls["change_language"], returns="text")
         if not change_language_response:
-            logger.warning("Unable to connect to provider")
+            logger.warning(_("Unable to connect to provider"))
             return False
 
         login_params = {"username": self.username, "password": self.password}
