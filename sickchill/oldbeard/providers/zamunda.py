@@ -59,11 +59,11 @@ class Provider(TorrentProvider):
 
         response = self.get_url(self.urls["login"], post_data=login_params, returns="text")
         if not response:
-            logger.warning("Unable to connect to provider")
+            logger.warning(_("Unable to connect to provider"))
             return False
 
         if re.search("Login failed!", response):
-            logger.warning("Invalid username or password. Check your settings")
+            logger.warning(_("Invalid username or password. Check your settings"))
             return False
 
         return True
@@ -80,18 +80,18 @@ class Provider(TorrentProvider):
         for mode in search_strings:
             items = []
 
-            logger.debug(f"Search Mode: {mode}")
+            logger.debug(_("Search Mode: {mode}").format(mode=mode))
             for search_string in {*search_strings[mode]}:
                 search_url = self.urls["search"] % quote_plus(search_string) + self.categories
-                logger.debug(f"Search String: {search_string}")
+                logger.debug(_("Search String: {search_string}").format(search_string=search_string))
 
                 data = self.get_url(search_url, returns="text")
                 if not data or "Flood protection is activated. Please, wait few seconds to continue." in data:
-                    logger.debug("Flood protection is activated")
+                    logger.debug(_("Flood protection is activated"))
                     continue
 
                 if data.find("Sorry, nothing found") != -1:
-                    logger.debug("Data returned from provider does not contain any torrents")
+                    logger.debug(_("Data returned from provider does not contain any torrents"))
                     continue
 
                 # Search result page contains some invalid html that prevents html parser from returning all data.
@@ -101,14 +101,14 @@ class Provider(TorrentProvider):
                 if match:
                     index = match.start()
                 else:
-                    logger.debug("Table not found")
+                    logger.debug(_("Table not found"))
                     continue
 
                 data = data[index:]
 
                 with BS4Parser(data) as html:
                     if not html:
-                        logger.debug("No html data parsed from provider")
+                        logger.debug(_("No html data parsed from provider"))
                         continue
 
                     torrent_rows = []
@@ -117,7 +117,7 @@ class Provider(TorrentProvider):
                         torrent_rows = torrent_table("tr")
 
                     if not torrent_rows:
-                        logger.debug("Could not find results in returned data")
+                        logger.debug(_("Could not find results in returned data"))
                         continue
 
                     # Skip column headers
@@ -147,7 +147,11 @@ class Provider(TorrentProvider):
                         # Filter unseeded torrent
                         if seeders < self.minseed or leechers < self.minleech:
                             if mode != "RSS":
-                                logger.debug(f"Discarding torrent because it doesn't meet the minimum seeders or leechers: {title} (S:{seeders} L:{leechers})")
+                                logger.debug(
+                                    _("Discarding torrent because it doesn't meet the minimum seeders or leechers: {0} (S:{1} L:{2})").format(
+                                        title, seeders, leechers
+                                    )
+                                )
                             continue
 
                         item = {"title": title, "link": self.url + download_url, "size": size, "seeders": seeders, "leechers": leechers, "hash": ""}
@@ -158,7 +162,7 @@ class Provider(TorrentProvider):
             items.sort(key=lambda d: try_int(d.get("seeders", 0)), reverse=True)
 
             results += items
-        logger.debug("Waiting to prevent flood protection...")
+        logger.debug(_("Waiting to prevent flood protection..."))
         time.sleep(2)
 
         return results
